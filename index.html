@@ -1,0 +1,1937 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MaidMax - Trusted On-Demand Maid Services</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .gradient-bg { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .feature-card { transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .feature-card:hover { transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.1); }
+        .pulse-animation { animation: pulse 2s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        /* Styles from prototype.html for app screens */
+        .app-screen { display: none; }
+        .app-screen.active { display: block; }
+        
+        .service-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .service-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .maid-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .maid-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1001;
+            padding: 16px 24px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 600;
+            transform: translateX(400px);
+            transition: all 0.3s ease;
+        }
+        
+        .notification.show {
+            transform: translateX(0);
+        }
+        
+        .notification.success { background: #10b981; }
+        .notification.error { background: #ef4444; }
+        .notification.info { background: #3b82f6; }
+        
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .status-pending { background: #fef3c7; color: #92400e; }
+        .status-accepted { background: #dbeafe; color: #1e40af; }
+        .status-in-progress { background: #fde68a; color: #92400e; }
+        .status-completed { background: #d1fae5; color: #065f46; }
+        
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            transform: translateY(20px);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.show .modal-content {
+            transform: translateY(0);
+        }
+
+        /* AI Output Modal Specific Styles */
+        #aiOutputModal .modal-content {
+            max-width: 600px;
+            text-align: left;
+        }
+        #aiOutputContent {
+            white-space: pre-wrap; /* Preserves whitespace and line breaks */
+            max-height: 300px; /* Limit height for scrollability */
+            overflow-y: auto; /* Enable scrolling if content overflows */
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background-color: #f8fafc;
+        }
+
+        /* Chatbot specific styles */
+        #chatbot-section {
+            width: 100%;
+            max-width: 500px; /* Adjust as needed */
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            height: 500px; /* Fixed height for demo */
+        }
+        .chat-display {
+            flex-grow: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            background-color: #f9fafb;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .chat-message {
+            margin-bottom: 1rem;
+            display: flex;
+        }
+        .chat-message.user {
+            justify-content: flex-end;
+        }
+        .chat-message.ai {
+            justify-content: flex-start;
+        }
+        .chat-bubble {
+            max-width: 80%;
+            padding: 0.75rem 1rem;
+            border-radius: 1.25rem;
+            line-height: 1.5;
+        }
+        .chat-bubble.user {
+            background-color: #667eea;
+            color: white;
+            border-bottom-right-radius: 0.25rem;
+        }
+        .chat-bubble.ai {
+            background-color: #e5e7eb;
+            color: #1f2937;
+            border-bottom-left-radius: 0.25rem;
+        }
+        .chat-input-container {
+            display: flex;
+            padding: 1rem;
+            background-color: white;
+            border-top: 1px solid #e5e7eb;
+        }
+        .chat-input-container textarea {
+            flex-grow: 1;
+            border: 1px solid #d1d5db;
+            border-radius: 0.75rem;
+            padding: 0.75rem 1rem;
+            resize: none;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin-right: 0.75rem;
+            outline: none;
+        }
+        .chat-input-container button {
+            background-color: #667eea;
+            color: white;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.75rem;
+            font-weight: 600;
+            transition: background-color 0.2s;
+        }
+        .chat-input-container button:hover {
+            background-color: #5a67d8;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Notification Container -->
+    <div id="notification" class="notification"></div>
+
+    <!-- Custom Confirmation Modal -->
+    <div id="confirmationModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="text-xl font-semibold text-gray-900 mb-4" id="modalTitle"></h3>
+            <p class="text-gray-600 mb-6" id="modalMessage"></p>
+            <div class="flex justify-center space-x-4">
+                <button id="modalCancelBtn" class="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg font-medium hover:bg-gray-300 transition-all">
+                    Cancel
+                </button>
+                <button id="modalConfirmBtn" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-all">
+                    Confirm
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Output Modal -->
+    <div id="aiOutputModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="text-xl font-semibold text-gray-900 mb-4" id="aiOutputTitle"></h3>
+            <div id="aiOutputContent" class="text-gray-800 text-sm mb-6"></div>
+            <button onclick="hideAIOutputModal()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-all">
+                Close
+            </button>
+        </div>
+    </div>
+
+    <!-- Header (from original index.html) -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center space-x-2">
+                    <!-- Updated Logo -->
+                    <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                        <span class="text-white text-xl">🏠</span>
+                    </div>
+                    <span class="text-2xl font-bold text-gray-900">MaidMax</span>
+                </div>
+                <nav class="hidden md:flex space-x-8">
+                    <a href="#features" class="text-gray-600 hover:text-purple-600 transition-colors">Features</a>
+                    <a href="#how-it-works" class="text-gray-600 hover:text-purple-600 transition-colors">How It Works</a>
+                    <a href="#contact" class="text-gray-600 hover:text-purple-600 transition-colors">Contact</a>
+                </nav>
+                <!-- Removed Download App button -->
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section / Landing Screen (adapted from original index.html hero) -->
+    <section id="landing-screen" class="app-screen active gradient-bg text-white py-20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid md:grid-cols-2 gap-12 items-center">
+                <div>
+                    <h1 class="text-5xl font-bold mb-6 leading-tight">
+                        Trusted On-Demand<br>
+                        <span class="text-yellow-300">Maid Services</span><br>
+                        for Your Home <span class="text-sm text-purple-200">(currently demo)</span>
+                    </h1>
+                    <p class="text-xl mb-8 text-purple-100">
+                        Book verified, police-checked maids for hourly cleaning services in Pune and Wagholi.
+                        Transparent pricing, no negotiations needed.
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-4">
+                        <button class="bg-white text-purple-600 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors" onclick="showAuth()">
+                            📱 Book Now
+                        </button>
+                        <button class="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-purple-600 transition-colors" onclick="showMaidAuth()">
+                            👩‍💼 Join as Maid
+                        </button>
+                    </div>
+                </div>
+                <!-- Chatbot Section -->
+                <div id="chatbot-section" class="hidden md:flex flex-col">
+                    <div class="bg-purple-600 text-white p-4 text-center text-xl font-semibold rounded-t-2xl">
+                        MaidMax AI Assistant
+                    </div>
+                    <div class="chat-display flex-grow p-4 overflow-y-auto" id="chat-display">
+                        <div class="chat-message ai">
+                            <div class="chat-bubble ai">Hello! I'm your MaidMax AI Assistant. How can I help you today? Ask me about our services or cleaning tips!</div>
+                        </div>
+                    </div>
+                    <div class="chat-input-container p-4 flex items-center">
+                        <textarea id="chat-input" class="flex-grow border border-gray-300 rounded-lg p-3 mr-3 resize-none focus:outline-none focus:ring-2 focus:ring-purple-500" rows="1" placeholder="Type your message..."></textarea>
+                        <button onclick="handleChatbotQuery()" class="bg-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-purple-700 transition-colors">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- App Screens (from prototype.html) -->
+    <!-- SERVICES SCREEN -->
+    <div id="services-screen" class="app-screen">
+        <!-- Header -->
+        <header class="bg-white shadow-sm sticky top-0 z-10">
+            <div class="max-w-4xl mx-auto px-4 py-4">
+                <div class="flex items-center justify-between">
+                    <button onclick="showLanding()" class="text-gray-600 hover:text-gray-900">
+                        ← Back
+                    </button>
+                    <h1 class="text-lg font-semibold">Choose Service</h1>
+                    <div class="w-8"></div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Services List -->
+        <main class="max-w-4xl mx-auto px-4 py-6">
+            <div class="space-y-4">
+                <!-- Toilet & Bathroom Cleaning -->
+                <div class="service-card bg-white rounded-xl p-6 shadow-sm border border-gray-200" onclick="selectService('toilet', 399)">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-16 h-16 bg-blue-100 rounded-xl flex items-center justify-center">
+                                <span class="text-2xl">🚽</span>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900">Toilet & Bathroom Cleaning</h3>
+                                <p class="text-sm text-gray-600">Deep sanitization of toilets and bathrooms</p>
+                                <p class="text-xs text-green-600 mt-1">⭐ 4.8 • 1-2 hours</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-2xl font-bold text-blue-600">₹399</div>
+                            <div class="text-xs text-gray-500">per visit</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Regular Cleaning -->
+                <div class="service-card bg-white rounded-xl p-6 shadow-sm border border-gray-200" onclick="selectService('regular', 499)">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-16 h-16 bg-green-100 rounded-xl flex items-center justify-center">
+                                <span class="text-2xl">🧽</span>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900">Regular Cleaning</h3>
+                                <p class="text-sm text-gray-600">Complete home cleaning and maintenance</p>
+                                <p class="text-xs text-green-600 mt-1">⭐ 4.7 • 2-3 hours</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-2xl font-bold text-green-600">₹499</div>
+                            <div class="text-xs text-gray-500">per visit</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Deep Cleaning -->
+                <div class="service-card bg-white rounded-xl p-6 shadow-sm border border-gray-200 border-purple-200" onclick="selectService('deep', 1200)">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-16 h-16 bg-purple-100 rounded-xl flex items-center justify-center">
+                                <span class="text-2xl">✨</span>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900">Deep Cleaning</h3>
+                                <p class="text-sm text-gray-600">Comprehensive deep cleaning service</p>
+                                <p class="text-xs text-green-600 mt-1">⭐ 4.9 • 4-5 hours</p>
+                                <span class="inline-block bg-purple-100 text-purple-800 text-xs px-2 py-1 rounded-full mt-1">Most Popular</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-2xl font-bold text-purple-600">₹1,200</div>
+                            <div class="text-xs text-gray-500">per visit</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Baby Sitter -->
+                <div class="service-card bg-white rounded-xl p-6 shadow-sm border border-gray-200" onclick="selectService('babysitter', 450)">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-16 h-16 bg-pink-100 rounded-xl flex items-center justify-center">
+                                <span class="text-2xl">🍼</span>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900">Baby Sitter</h3>
+                                <p class="text-sm text-gray-600">Professional and caring childcare</p>
+                                <p class="text-xs text-green-600 mt-1">⭐ 4.9 • 6 hours</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-2xl font-bold text-pink-600">₹450</div>
+                            <div class="text-xs text-gray-500">for 6 hours</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- All-Rounder Maid Service -->
+                <div class="service-card bg-white rounded-xl p-6 shadow-sm border border-gray-200" onclick="selectService('allrounder', 500)">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-16 h-16 bg-yellow-100 rounded-xl flex items-center justify-center">
+                                <span class="text-2xl">🌟</span>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-900">All-Rounder Maid Service</h3>
+                                <p class="text-sm text-gray-600">Normal home cleaning, cooking, dishwashing</p>
+                                <p class="text-xs text-green-600 mt-1">⭐ 4.7 • per visit</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-2xl font-bold text-yellow-600">₹500</div>
+                            <div class="text-xs text-gray-500">per visit</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- NEARBY MAIDS SCREEN -->
+    <div id="maids-screen" class="app-screen">
+        <!-- Header -->
+        <header class="bg-white shadow-sm sticky top-0 z-10">
+            <div class="max-w-4xl mx-auto px-4 py-4">
+                <div class="flex items-center justify-between">
+                    <button onclick="showServices()" class="text-gray-600 hover:text-gray-900">
+                        ← Back
+                    </button>
+                    <div class="text-center">
+                        <h1 class="text-lg font-semibold" id="selectedServiceTitle">Choose Maid</h1>
+                        <p class="text-sm text-gray-600" id="selectedServicePrice">₹499</p>
+                    </div>
+                    <div class="w-8"></div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Nearby Maids -->
+        <main class="max-w-4xl mx-auto px-4 py-6">
+            <div class="mb-4">
+                <h2 class="text-lg font-semibold text-gray-900 mb-2">Available Maids Near You</h2>
+                <p class="text-sm text-gray-600">📍 Wagholi area • All maids are verified</p>
+            </div>
+
+            <div id="maidsList" class="space-y-4">
+                <!-- Maids will be loaded here -->
+            </div>
+        </main>
+    </div>
+
+    <!-- ORDER CONFIRMATION SCREEN -->
+    <div id="confirmation-screen" class="app-screen">
+        <!-- Header -->
+        <header class="bg-white shadow-sm sticky top-0 z-10">
+            <div class="max-w-4xl mx-auto px-4 py-4">
+                <div class="flex items-center justify-between">
+                    <button onclick="showMaids()" class="text-gray-600 hover:text-gray-900">
+                        ← Back
+                    </button>
+                    <h1 class="text-lg font-semibold">Confirm Order</h1>
+                    <div class="w-8"></div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Order Details -->
+        <main class="max-w-4xl mx-auto px-4 py-6">
+            <div class="bg-white rounded-xl p-6 shadow-sm mb-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Order Summary</h2>
+                
+                <div class="space-y-3 mb-6">
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Service</span>
+                        <span class="font-medium" id="orderService">Regular Cleaning</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Maid</span>
+                        <span class="font-medium" id="orderMaid">Priya Sharma</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Date & Time</span>
+                        <span class="font-medium" id="orderDateTime">Today, 2:00 PM</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-600">Address</span>
+                        <span class="font-medium text-right" id="orderAddress">Ivy State, Wagholi</span>
+                    </div>
+                    <hr>
+                    <div class="flex justify-between text-lg font-semibold">
+                        <span>Total</span>
+                        <span class="text-green-600" id="orderTotal">₹499</span>
+                    </div>
+                </div>
+
+                <!-- Address Input -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Your Address</label>
+                    <textarea id="userAddress" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" rows="3" placeholder="Enter your complete address in Wagholi area" required></textarea>
+                </div>
+
+                <!-- Time Selection -->
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Preferred Time</label>
+                    <select id="preferredTime" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500">
+                        <option value="now">Now (within 30 mins)</option>
+                        <option value="1hour">In 1 hour</option>
+                        <option value="2hours">In 2 hours</option>
+                        <option value="evening">This evening (6-8 PM)</option>
+                        <option value="tomorrow">Tomorrow morning</option>
+                    </select>
+                </div>
+
+                <button onclick="placeOrder()" class="w-full bg-green-600 text-white py-4 rounded-lg font-semibold text-lg hover:bg-green-700 transition-all">
+                    <span id="placeOrderText">Place Order</span>
+                    <span id="placeOrderLoader" class="loading hidden"></span>
+                </button>
+
+                <!-- Removed AI Feature Button for Customer -->
+            </div>
+        </main>
+    </div>
+
+    <!-- ORDER TRACKING SCREEN -->
+    <div id="tracking-screen" class="app-screen">
+        <!-- Header -->
+        <header class="bg-white shadow-sm sticky top-0 z-10">
+            <div class="max-w-4xl mx-auto px-4 py-4">
+                <div class="flex items-center justify-between">
+                    <button onclick="showLanding()" class="text-gray-600 hover:text-gray-900">
+                        ← Home
+                    </button>
+                    <h1 class="text-lg font-semibold">Track Order</h1>
+                    <div class="w-8"></div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Tracking Details -->
+        <main class="max-w-4xl mx-auto px-4 py-6">
+            <!-- Order Status -->
+            <div class="bg-white rounded-xl p-6 shadow-sm mb-6">
+                <div class="text-center mb-6">
+                    <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-3xl" id="trackingIcon">🧹</span>
+                    </div>
+                    <h2 class="text-xl font-semibold text-gray-900" id="trackingStatus">Order Confirmed</h2>
+                    <p class="text-gray-600" id="trackingMessage">Your maid is getting ready</p>
+                </div>
+
+                <!-- Maid Info -->
+                <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg mb-6">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                            <span class="text-xl">👩‍🦱</span>
+                        </div>
+                        <div>
+                            <h3 class="font-semibold text-gray-900" id="trackingMaidName">Priya Sharma</h3>
+                            <p class="text-sm text-gray-600">⭐ 4.8 • 2 years experience</p>
+                        </div>
+                    </div>
+                    <button onclick="callMaid()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">
+                        📞 Call
+                    </button>
+                </div>
+
+                <!-- Progress -->
+                <div class="space-y-4">
+                    <div class="flex items-center">
+                        <div class="w-4 h-4 bg-green-500 rounded-full"></div>
+                        <div class="ml-4">
+                            <p class="font-medium text-gray-900">Order Confirmed</p>
+                            <p class="text-sm text-gray-600">Just now</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-4 h-4 bg-yellow-500 rounded-full"></div>
+                        <div class="ml-4">
+                            <p class="font-medium text-gray-900">Maid Assigned</p>
+                            <p class="text-sm text-gray-600">Priya is preparing</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-4 h-4 bg-gray-300 rounded-full"></div>
+                        <div class="ml-4">
+                            <p class="font-medium text-gray-500">On the way</p>
+                            <p class="text-sm text-gray-500">ETA: 25 mins</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center">
+                        <div class="w-4 h-4 bg-gray-300 rounded-full"></div>
+                        <div class="ml-4">
+                            <p class="font-medium text-gray-500">Service Started</p>
+                            <p class="text-sm text-gray-500">Cleaning in progress</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="confirmCancelOrder()" class="bg-red-600 text-white py-3 rounded-lg font-medium hover:bg-red-700">
+                    Cancel Order
+                </button>
+                <button onclick="showChat()" class="bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700">
+                    💬 Chat
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <!-- MAID PARTNER APP -->
+    <div id="maid-app-screen" class="app-screen">
+        <!-- Header -->
+        <header class="bg-white shadow-sm sticky top-0 z-10">
+            <div class="max-w-4xl mx-auto px-4 py-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
+                            <span class="text-white text-xl">🧹</span>
+                        </div>
+                        <div>
+                            <h1 class="text-lg font-bold text-gray-900">MaidMax Partner</h1>
+                            <p class="text-xs text-gray-600" id="maidLocation">📍 Wagholi, Pune</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <button onclick="toggleAvailability()" id="availabilityBtn" class="bg-green-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-600 transition-all">
+                            🟢 Online
+                        </button>
+                        <button onclick="showMaidProfile()" class="text-gray-600 hover:text-gray-900">
+                            👤
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Stats Bar -->
+        <div class="bg-gradient-to-r from-green-500 to-teal-600 text-white py-4">
+            <div class="max-w-4xl mx-auto px-4">
+                <div class="grid grid-cols-3 gap-4 text-center">
+                    <div>
+                        <div class="text-2xl font-bold" id="todayEarnings">₹850</div>
+                        <div class="text-xs text-green-100">Today's Earnings</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold" id="completedJobs">3</div>
+                        <div class="text-xs text-green-100">Jobs Completed</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl font-bold" id="maidRating">4.8</div>
+                        <div class="text-xs text-green-100">Your Rating</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="max-w-4xl mx-auto px-4 py-6">
+            <!-- Available Orders -->
+            <section id="availableOrdersSection">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-semibold text-gray-900">Available Orders</h2>
+                    <button onclick="refreshOrders()" class="text-blue-600 hover:text-blue-800 text-sm">
+                        🔄 Refresh
+                    </button>
+                </div>
+                
+                <div id="availableOrdersList" class="space-y-4">
+                    <!-- Orders will be loaded here -->
+                </div>
+            </section>
+
+            <!-- Current Job -->
+            <section id="currentJobSection" style="display: none;">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Current Job</h2>
+                
+                <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900" id="currentJobService">Regular Cleaning</h3>
+                            <p class="text-sm text-gray-600" id="currentJobAddress">Ivy State, Wagholi</p>
+                            <p class="text-sm text-green-600" id="currentJobEarning">Earning: ₹499</p>
+                        </div>
+                        <div class="text-right">
+                            <div class="status-badge status-accepted" id="currentJobStatus">Accepted</div>
+                            <p class="text-xs text-gray-500 mt-1" id="currentJobTime">5 mins ago</p>
+                        </div>
+                    </div>
+
+                    <!-- Customer Info -->
+                    <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg mb-4">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                                <span class="text-lg">👤</span>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-900" id="customerName">Rahul S.</h4>
+                                <p class="text-sm text-gray-600">Customer</p>
+                            </div>
+                        </div>
+                        <button onclick="callCustomer()" class="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700">
+                            📞 Call
+                        </button>
+                    </div>
+
+                    <!-- Job Actions -->
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="startJob()" id="startJobBtn" class="bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700">
+                            🚀 Start Job
+                        </button>
+                        <button onclick="confirmCompleteJob()" id="completeJobBtn" class="bg-purple-600 text-white py-3 rounded-lg font-medium hover:bg-purple-700" style="display: none;">
+                            ✅ Complete
+                        </button>
+                    </div>
+                     <!-- Removed AI Feature Button for Maid Partner -->
+                </div>
+            </section>
+
+            <!-- Today's Summary -->
+            <section class="mt-8">
+                <h2 class="text-lg font-semibold text-gray-900 mb-4">Today's Summary</h2>
+                
+                <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-600 mb-2">Completed Jobs</h3>
+                            <div id="completedJobsList" class="space-y-2">
+                                <!-- Completed jobs will be shown here -->
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-600 mb-2">Earnings Breakdown</h3>
+                            <div class="space-y-2">
+                                <div class="flex justify-between text-sm">
+                                    <span>Base Earnings</span>
+                                    <span id="baseEarnings">₹750</span>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <span>Tips</span>
+                                    <span id="tips">₹100</span>
+                                </div>
+                                <hr>
+                                <div class="flex justify-between font-semibold">
+                                    <span>Total</span>
+                                    <span class="text-green-600" id="totalEarnings">₹850</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- MAID PROFILE SCREEN -->
+    <div id="maid-profile-screen" class="app-screen">
+        <!-- Header -->
+        <header class="bg-white shadow-sm sticky top-0 z-10">
+            <div class="max-w-4xl mx-auto px-4 py-4">
+                <div class="flex items-center justify-between">
+                    <button onclick="showMaidApp()" class="text-gray-600 hover:text-gray-900">
+                        ← Back
+                    </button>
+                    <h1 class="text-lg font-semibold">Profile</h1>
+                    <button onclick="confirmLogoutMaid()" class="text-red-600 hover:text-red-800 text-sm">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Profile Content -->
+        <main class="max-w-4xl mx-auto px-4 py-6">
+            <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 mb-6">
+                <div class="text-center mb-6">
+                    <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-3xl">👩‍🦱</span>
+                    </div>
+                    <h2 class="text-xl font-bold text-gray-900" id="maidName">Priya Sharma</h2>
+                    <p class="text-gray-600">Professional Cleaner</p>
+                    <div class="flex items-center justify-center space-x-4 mt-2">
+                        <span class="text-yellow-500">⭐ 4.8</span>
+                        <span class="text-gray-400">•</span>
+                        <span class="text-gray-600">2 years experience</span>
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="grid grid-cols-3 gap-4 mb-6">
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-gray-900">127</div>
+                        <div class="text-sm text-gray-600">Total Jobs</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-green-600">₹18,450</div>
+                        <div class="text-sm text-gray-600">This Month</div>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-2xl font-bold text-blue-600">98%</div>
+                        <div class="text-sm text-gray-600">Acceptance Rate</div>
+                    </div>
+                </div>
+
+                <!-- Contact Info -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-600">Phone</span>
+                        <span class="font-medium">+91 9876543210</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-600">Service Area</span>
+                        <span class="font-medium">Wagholi, Pune</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-gray-600">Joined</span>
+                        <span class="font-medium">Jan 2023</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="space-y-3">
+                <button onclick="showEarningsHistory()" class="w-full bg-green-50 text-green-700 py-3 rounded-lg font-medium hover:bg-green-100 transition-all">
+                    💰 Earnings History
+                </button>
+                <button onclick="showJobHistory()" class="w-full bg-blue-50 text-blue-700 py-3 rounded-lg font-medium hover:bg-blue-100 transition-all">
+                    📋 Job History
+                </button>
+                <button onclick="showSupport()" class="w-full bg-purple-50 text-purple-700 py-3 rounded-lg font-medium hover:bg-purple-100 transition-all">
+                    🎧 Support
+                </button>
+            </div>
+        </main>
+    </div>
+
+    <!-- AUTH SCREEN -->
+    <div id="auth-screen" class="app-screen">
+        <div class="min-h-screen bg-gradient-to-br from-blue-600 to-purple-700 flex items-center justify-center p-4">
+            <div class="bg-white rounded-xl p-8 max-w-md w-full">
+                <div class="text-center mb-8">
+                    <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <span class="text-2xl" id="authIcon">🏠</span>
+                    </div>
+                    <h1 class="text-2xl font-bold text-gray-900 mb-2" id="authTitle">Welcome to MaidMax</h1>
+                    <p class="text-gray-600" id="authSubtitle">Enter your phone number or sign in with Email</p>
+                </div>
+                
+                <!-- User Type Selection -->
+                <div class="mb-6">
+                    <div class="grid grid-cols-2 gap-3">
+                        <button onclick="selectUserType('customer')" id="customerBtn" class="bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-all">
+                            🏠 Customer
+                        </button>
+                        <button onclick="selectUserType('maid')" id="maidBtn" class="bg-gray-200 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-300 transition-all">
+                            🧹 Maid Partner
+                        </button>
+                    </div>
+                </div>
+                
+                <form id="authForm" class="space-y-4">
+                    <div id="phoneAuthFields">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
+                            <input type="tel" id="phoneNumber" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="+91 9876543210">
+                        </div>
+                        <button type="submit" class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-all mt-4">
+                            <span id="authSubmitText">Continue with Phone</span>
+                            <span id="authLoader" class="loading hidden"></span>
+                        </button>
+                    </div>
+
+                    <div id="emailAuthFields" style="display: none;">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                            <input type="email" id="email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="your@example.com">
+                        </div>
+                        <div class="mt-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Password</label>
+                            <input type="password" id="password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="••••••••">
+                        </div>
+                        <button type="submit" id="emailAuthSubmitBtn" class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-all mt-4">
+                            <span id="emailAuthSubmitText">Login</span>
+                            <span id="emailAuthLoader" class="loading hidden"></span>
+                        </button>
+                    </div>
+                </form>
+
+                <div class="text-center mt-6">
+                    <button id="toggleEmailPhoneAuth" class="text-gray-500 hover:text-gray-700 text-sm">
+                        Use Email/Password
+                    </button>
+                </div>
+                <div class="text-center mt-2">
+                    <button onclick="showLanding()" class="text-gray-500 hover:text-gray-700 text-sm">← Back to home</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Features Section (from original index.html) -->
+    <section id="features" class="py-20 bg-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold text-gray-900 mb-4">Why Choose MaidMax?</h2>
+                <p class="text-xl text-gray-600">Revolutionizing domestic help with trust, transparency, and technology</p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="feature-card bg-gradient-to-br from-purple-50 to-purple-100 p-8 rounded-2xl">
+                    <div class="w-16 h-16 bg-purple-600 rounded-full flex items-center justify-center mb-6">
+                        <span class="text-3xl">🛡️</span>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-4">Police Verified</h3>
+                    <p class="text-gray-600">All our maids undergo thorough police verification for your complete peace of mind and safety.</p>
+                </div>
+                <div class="feature-card bg-gradient-to-br from-blue-50 to-blue-100 p-8 rounded-2xl">
+                    <div class="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-6">
+                        <span class="text-3xl">💰</span>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-4">Transparent Pricing</h3>
+                    <p class="text-gray-600">Clear hourly rates with no hidden charges. No more haggling or surprise costs.</p>
+                </div>
+                <div class="feature-card bg-gradient-to-br from-green-50 to-green-100 p-8 rounded-2xl">
+                    <div class="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mb-6">
+                        <span class="text-3xl">⚡</span>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-4">On-Demand Service</h3>
+                    <p class="text-gray-600">Book instantly or schedule for later. Flexible hourly services that fit your schedule.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works (from original index.html) -->
+    <section id="how-it-works" class="py-20 bg-gray-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold text-gray-900 mb-4">How MaidMax Works</h2>
+                <p class="text-xl text-gray-600">Simple, fast, and reliable in just 3 steps</p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="text-center">
+                    <div class="w-20 h-20 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <span class="text-3xl text-white font-bold">1</span>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-4">📱 Book Service</h3>
+                    <p class="text-gray-600">Choose your service type, select duration, and pick your preferred time slot through our easy-to-use app.</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-20 h-20 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <span class="text-3xl text-white font-bold">2</span>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-4">👩‍💼 Get Matched</h3>
+                    <p class="text-gray-600">Our system assigns a verified maid based on availability and location. View their profile and ratings.</p>
+                </div>
+                <div class="text-center">
+                    <div class="w-20 h-20 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <span class="text-3xl text-white font-bold">3</span>
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 mb-4">✨ Enjoy Clean Home</h3>
+                    <p class="text-gray-600">Relax while our professional maid completes the job. Pay securely through the app after service completion.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section (from original index.html) -->
+    <section class="gradient-bg text-white py-20">
+        <div class="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
+            <h2 class="text-4xl font-bold mb-6">Ready to Experience MaidMax?</h2>
+            <p class="text-xl mb-8 text-purple-100">
+                Join thousands of satisfied customers in Pune and Wagholi who trust MaidMax for their home cleaning needs.
+            </p>
+            <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                <button class="bg-white text-purple-600 px-8 py-4 rounded-lg font-semibold hover:bg-gray-100 transition-colors" onclick="showAuth()">
+                    📱 Download Customer App
+                </button>
+                <button class="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-purple-600 transition-colors" onclick="showMaidAuth()">
+                    👩‍💼 Register as Maid
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer (from original index.html) -->
+    <footer id="contact" class="bg-gray-900 text-white py-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center space-x-2 mb-4">
+                        <div class="w-10 h-10 bg-purple-600 rounded-lg flex items-center justify-center">
+                            <span class="text-white font-bold text-xl">M</span>
+                        </div>
+                        <span class="text-2xl font-bold">MaidMax</span>
+                    </div>
+                    <p class="text-gray-400">Revolutionizing domestic help with trust, transparency, and technology.</p>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Services</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li>Basic Cleaning</li>
+                        <li>Dishwashing</li>
+                        <li>Laundry</li>
+                        <li>Deep Cleaning</li>
+                        <li>Baby Sitter</li>
+                        <li>All-Rounder Maid Service</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Areas</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li>Pune City</li>
+                        <li>Wagholi</li>
+                        <li>Kharadi</li>
+                        <li>Hadapsar</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-semibold mb-4">Contact</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li>📧 hello@maidmax.in</li>
+                        <li>📞 +91 70573 43617</li>
+                        <li>📍 Pune, Maharashtra</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400">
+                <p>&copy; 2024 MaidMax. All rights reserved. | Privacy Policy | Terms of Service</p>
+            </div>
+        </div>
+    </footer>
+    
+    <script type="module">
+        // Import the necessary functions for Firebase Auth and Cloud Functions
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-functions.js";
+        
+        // Your web app's Firebase configuration (provided by user)
+        const firebaseConfig = {
+            apiKey: "AIzaSyDyeZ8WbVKnLDtDyEooWiZwzol4vxu_sqA",
+            authDomain: "maidmax-2005.firebaseapp.com",
+            projectId: "maidmax-2005",
+            storageBucket: "maidmax-2005.firebasestorage.app",
+            messagingSenderId: "721348574009",
+            appId: "1:721348574009:web:578404ffdcd2b2435846e8",
+            measurementId: "G-8T69P40DQ8"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const functions = getFunctions(app);
+
+        // Get a reference to the callable function (keeping this here in case you enable a backend later)
+        const createBooking = httpsCallable(functions, 'createBooking');
+
+        // Make auth, app, and functions globally accessible if needed by other scripts
+        window.firebaseApp = app;
+        window.firebaseAuth = auth;
+        window.firebaseFunctions = functions;
+    </script>
+    
+    <script>
+        // App State
+        let appState = {
+            selectedService: null,
+            selectedMaid: null,
+            currentUser: null,
+            currentOrder: null,
+            userType: 'customer', // 'customer' or 'maid'
+            maidAvailable: true,
+            currentJob: null,
+            isRegisterMode: false // New state for auth screen: false for login, true for register
+        };
+
+        // Sample Data
+        const services = {
+            toilet: { name: 'Toilet & Bathroom Cleaning', price: 399, icon: '🚽', duration: '1-2 hours' },
+            regular: { name: 'Regular Cleaning', price: 499, icon: '🧽', duration: '2-3 hours' },
+            deep: { name: 'Deep Cleaning', price: 1200, icon: '✨', duration: '4-5 hours' },
+            babysitter: { name: 'Baby Sitter', price: 450, icon: '🍼', duration: '6 hours' }, // New service
+            allrounder: { name: 'All-Rounder Maid Service', price: 500, icon: '🌟', duration: 'per visit' } // New service
+        };
+
+        const nearbyMaids = [
+            { id: 1, name: 'Priya Sharma', rating: 4.8, experience: '2 years', distance: '0.5 km', available: true, avatar: '👩‍🦱' },
+            { id: 2, name: 'Sunita Devi', rating: 4.9, experience: '3 years', distance: '0.8 km', available: true, avatar: '👩' },
+            { id: 3, name: 'Maya Kumari', rating: 4.7, experience: '1.5 years', distance: '1.2 km', available: true, avatar: '👩‍🦳' },
+            { id: 4, name: 'Rekha Singh', rating: 4.6, experience: '2.5 years', distance: '1.5 km', available: false, avatar: '👩‍🦱' }
+        ];
+
+        const availableOrders = [
+            {
+                id: 'ORD001',
+                service: 'regular',
+                customer: 'Rahul S.',
+                address: 'Ivy State, Block A, Wagholi',
+                distance: '0.8 km',
+                price: 499,
+                time: 'Now',
+                estimatedDuration: '2-3 hours'
+            },
+            {
+                id: 'ORD002',
+                service: 'toilet',
+                customer: 'Priya M.',
+                address: 'Nyati County, Tower B, Wagholi',
+                distance: '1.2 km',
+                price: 399,
+                time: 'In 30 mins',
+                estimatedDuration: '1-2 hours'
+            },
+            {
+                id: 'ORD003',
+                service: 'deep',
+                customer: 'Amit K.',
+                address: 'Wagholi Road, Near Metro Station',
+                distance: '1.5 km',
+                price: 1200,
+                time: 'In 1 hour',
+                estimatedDuration: '4-5 hours'
+            }
+        ];
+
+        // API Key (leave empty, Canvas will inject it)
+        const API_KEY = ""; 
+
+        // Utility for exponential backoff
+        async function fetchWithExponentialBackoff(url, options, maxRetries = 5) {
+            for (let i = 0; i < maxRetries; i++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (response.status === 429 && i < maxRetries - 1) { // Too Many Requests
+                        const delay = Math.pow(2, i) * 1000 + Math.random() * 1000; // Exponential backoff with jitter
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        continue;
+                    }
+                    return response;
+                } catch (error) {
+                    if (i < maxRetries - 1) {
+                        const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        continue;
+                    }
+                    throw error; // Re-throw if max retries reached
+                }
+            }
+        }
+
+        // Navigation Functions
+        function showLanding() {
+            hideAllScreens();
+            document.getElementById('landing-screen').classList.add('active');
+        }
+
+        function showServices() {
+            hideAllScreens();
+            document.getElementById('services-screen').classList.add('active');
+        }
+
+        function showMaids() {
+            hideAllScreens();
+            document.getElementById('maids-screen').classList.add('active');
+            loadNearbyMaids();
+        }
+
+        function showConfirmation() {
+            hideAllScreens();
+            document.getElementById('confirmation-screen').classList.add('active');
+            updateOrderSummary();
+        }
+
+        function showTracking() {
+            hideAllScreens();
+            document.getElementById('tracking-screen').classList.add('active');
+            startOrderTracking();
+        }
+
+        function showAuth() {
+            hideAllScreens();
+            document.getElementById('auth-screen').classList.add('active');
+            selectUserType('customer'); // Default to customer login
+            appState.isRegisterMode = false; // Default to login view
+            updateAuthFormVisibility();
+        }
+
+        function showMaidAuth() {
+            hideAllScreens();
+            document.getElementById('auth-screen').classList.add('active');
+            selectUserType('maid'); // Default to maid login
+            appState.isRegisterMode = false; // Default to login view
+            updateAuthFormVisibility();
+        }
+
+        function showMaidApp() {
+            hideAllScreens();
+            document.getElementById('maid-app-screen').classList.add('active');
+            loadAvailableOrders();
+            loadTodaySummary();
+        }
+
+        function showMaidProfile() {
+            hideAllScreens();
+            document.getElementById('maid-profile-screen').classList.add('active');
+        }
+
+        function hideAllScreens() {
+            document.querySelectorAll('.app-screen').forEach(screen => {
+                screen.classList.remove('active');
+            });
+        }
+
+        // Service Selection
+        function selectService(serviceType, price) {
+            appState.selectedService = { type: serviceType, price: price };
+            
+            // Update header in maids-screen
+            document.getElementById('selectedServiceTitle').textContent = services[serviceType].name;
+            document.getElementById('selectedServicePrice').textContent = `₹${price}`;
+            
+            showMaids();
+        }
+
+        // Load Nearby Maids
+        function loadNearbyMaids() {
+            const maidsList = document.getElementById('maidsList');
+            
+            maidsList.innerHTML = nearbyMaids.map(maid => `
+                <div class="maid-card bg-white rounded-xl p-4 shadow-sm border border-gray-200 ${!maid.available ? 'opacity-60' : ''}" ${maid.available ? `onclick="selectMaid(${maid.id})"` : ''}>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                <span class="text-xl">${maid.avatar}</span>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900">${maid.name}</h3>
+                                <p class="text-sm text-gray-600">⭐ ${maid.rating} • ${maid.experience} experience</p>
+                                <p class="text-xs text-blue-600">📍 ${maid.distance} away</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            ${maid.available ? 
+                                '<div class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-medium">Available</div>' : 
+                                '<div class="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-medium">Busy</div>'
+                            }
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Maid Selection
+        function selectMaid(maidId) {
+            const maid = nearbyMaids.find(m => m.id === maidId);
+            if (maid && maid.available) {
+                appState.selectedMaid = maid;
+                showConfirmation();
+            }
+        }
+
+        // Update Order Summary
+        function updateOrderSummary() {
+            if (!appState.selectedService || !appState.selectedMaid) return;
+            
+            const service = services[appState.selectedService.type];
+            
+            document.getElementById('orderService').textContent = service.name;
+            document.getElementById('orderMaid').textContent = appState.selectedMaid.name;
+            // You might want to dynamically set date/time here based on current date or selection
+            document.getElementById('orderDateTime').textContent = 'Today, ' + new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+            document.getElementById('orderAddress').textContent = 'Wagholi, Pune'; // Default placeholder, will be filled by user
+            document.getElementById('orderTotal').textContent = `₹${appState.selectedService.price}`;
+        }
+
+        // Place Order
+        function placeOrder() {
+            const address = document.getElementById('userAddress').value.trim();
+            const time = document.getElementById('preferredTime').value;
+            
+            if (!address) {
+                showNotification('Please enter your address', 'error');
+                return;
+            }
+            
+            // Show loading
+            document.getElementById('placeOrderText').classList.add('hidden');
+            document.getElementById('placeOrderLoader').classList.remove('hidden');
+            
+            setTimeout(() => {
+                // Create order
+                appState.currentOrder = {
+                    id: 'ORD' + Date.now(),
+                    service: appState.selectedService,
+                    maid: appState.selectedMaid,
+                    address: address,
+                    time: time,
+                    status: 'confirmed',
+                    createdAt: new Date()
+                };
+                
+                showNotification('🎉 Order placed successfully!', 'success');
+                showTracking();
+                
+                // Reset loading
+                document.getElementById('placeOrderText').classList.remove('hidden');
+                document.getElementById('placeOrderLoader').classList.add('hidden');
+            }, 2000);
+        }
+
+        // Order Tracking
+        function startOrderTracking() {
+            if (!appState.currentOrder) return;
+            
+            // Update tracking info
+            document.getElementById('trackingMaidName').textContent = appState.currentOrder.maid.name;
+            
+            // Simulate order progress - you can add more sophisticated logic here
+            setTimeout(() => {
+                updateTrackingStatus('assigned', '🚗', 'Maid Assigned', 'Your maid is preparing for arrival.');
+            }, 3000);
+            
+            setTimeout(() => {
+                updateTrackingStatus('on-way', '🚗', 'On the Way', 'Maid is en route. ETA: 15 minutes');
+            }, 8000);
+            
+            setTimeout(() => {
+                updateTrackingStatus('arrived', '🏠', 'Arrived', 'Your maid has reached your location.');
+            }, 15000);
+            
+            setTimeout(() => {
+                updateTrackingStatus('started', '🧹', 'Service Started', 'Cleaning is in progress!');
+            }, 18000);
+        }
+
+        function updateTrackingStatus(status, icon, title, message) {
+            document.getElementById('trackingIcon').textContent = icon;
+            document.getElementById('trackingStatus').textContent = title;
+            document.getElementById('trackingMessage').textContent = message;
+            showNotification(`📱 ${title}: ${message}`, 'info');
+        }
+
+        // Communication Functions
+        function callMaid() {
+            showNotification('📞 Calling maid... (Demo)', 'info');
+        }
+
+        function showChat() {
+            showNotification('💬 Chat feature coming soon!', 'info');
+        }
+
+        // Custom Modal Functions (Confirmation)
+        let modalConfirmCallback = null;
+
+        function showModal(title, message, confirmText = 'Confirm', cancelText = 'Cancel', onConfirm) {
+            document.getElementById('modalTitle').textContent = title;
+            document.getElementById('modalMessage').textContent = message;
+            document.getElementById('modalConfirmBtn').textContent = confirmText;
+            document.getElementById('modalCancelBtn').textContent = cancelText;
+            
+            modalConfirmCallback = onConfirm;
+
+            document.getElementById('confirmationModal').classList.add('show');
+        }
+
+        function hideModal() {
+            document.getElementById('confirmationModal').classList.remove('show');
+            modalConfirmCallback = null; // Clear the callback
+        }
+
+        document.getElementById('modalConfirmBtn').addEventListener('click', () => {
+            if (modalConfirmCallback) {
+                modalConfirmCallback(true);
+            }
+            hideModal();
+        });
+
+        document.getElementById('modalCancelBtn').addEventListener('click', () => {
+            if (modalConfirmCallback) {
+                modalConfirmCallback(false);
+            }
+            hideModal();
+        });
+
+        // Custom Modal Functions (AI Output)
+        function showAIOutputModal(title, content) {
+            document.getElementById('aiOutputTitle').textContent = title;
+            document.getElementById('aiOutputContent').textContent = content;
+            document.getElementById('aiOutputModal').classList.add('show');
+        }
+
+        function hideAIOutputModal() {
+            document.getElementById('aiOutputModal').classList.remove('show');
+        }
+
+        // Functions using custom modal
+        function confirmCancelOrder() {
+            showModal(
+                'Cancel Order?',
+                'Are you sure you want to cancel this order? This action cannot be undone.',
+                'Yes, Cancel',
+                'No, Keep',
+                (confirmed) => {
+                    if (confirmed) {
+                        cancelOrder();
+                    }
+                }
+            );
+        }
+
+        function cancelOrder() {
+            showNotification('❌ Order cancelled successfully', 'info');
+            showLanding();
+            appState.currentOrder = null;
+        }
+
+        function confirmCompleteJob() {
+            showModal(
+                'Complete Job?',
+                'Are you sure you want to mark this job as completed? Payment will be processed.',
+                'Yes, Complete',
+                'No, Not yet',
+                (confirmed) => {
+                    if (confirmed) {
+                        completeJob();
+                    }
+                }
+            );
+        }
+        
+        function completeJob() {
+            if (!appState.currentJob) return;
+            
+            const earnings = appState.currentJob.price;
+            
+            // Update earnings
+            const currentEarnings = parseInt(document.getElementById('todayEarnings').textContent.replace('₹', ''));
+            const currentJobs = parseInt(document.getElementById('completedJobs').textContent);
+            
+            document.getElementById('todayEarnings').textContent = `₹${currentEarnings + earnings}`;
+            document.getElementById('completedJobs').textContent = currentJobs + 1;
+            
+            // Hide current job section
+            document.getElementById('currentJobSection').style.display = 'none';
+            document.getElementById('availableOrdersSection').style.display = 'block';
+            
+            showNotification('🎉 Order accepted! Customer has been notified.', 'success');
+            
+            // Update stats
+            updateMaidStats();
+            loadAvailableOrders(); // Refresh available orders list
+        }
+
+        function confirmLogoutMaid() {
+            showModal(
+                'Logout?',
+                'Are you sure you want to log out from your Maid Partner account?',
+                'Yes, Logout',
+                'Stay Logged In',
+                (confirmed) => {
+                    if (confirmed) {
+                        logoutMaid();
+                    }
+                }
+            );
+        }
+
+        function logoutMaid() {
+            appState.currentUser = null;
+            appState.currentJob = null;
+            showNotification('👋 Logged out successfully!', 'info');
+            showLanding();
+        }
+
+        // User Type Selection for Auth Screen
+        function selectUserType(type) {
+            appState.userType = type;
+            
+            // Update button styles and text based on user type
+            const customerBtn = document.getElementById('customerBtn');
+            const maidBtn = document.getElementById('maidBtn');
+            const authIconSpan = document.getElementById('authIcon');
+            const authTitle = document.getElementById('authTitle');
+            
+            if (type === 'customer') {
+                customerBtn.className = 'bg-blue-600 text-white py-3 rounded-lg font-medium hover:bg-blue-700 transition-all';
+                maidBtn.className = 'bg-gray-200 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-300 transition-all';
+                
+                authIconSpan.textContent = '🏠';
+                authTitle.textContent = 'Customer Login';
+            } else {
+                maidBtn.className = 'bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700 transition-all';
+                customerBtn.className = 'bg-gray-200 text-gray-700 py-3 rounded-lg font-medium hover:bg-gray-300 transition-all';
+                
+                authIconSpan.textContent = '🧹';
+                authTitle.textContent = 'Maid Partner Login';
+            }
+            // Ensure subtitle is updated based on current auth mode (login/register)
+            updateAuthFormVisibility();
+        }
+
+        // Function to toggle between phone and email/password authentication fields
+        function updateAuthFormVisibility() {
+            const phoneAuthFields = document.getElementById('phoneAuthFields');
+            const emailAuthFields = document.getElementById('emailAuthFields');
+            const authSubtitle = document.getElementById('authSubtitle');
+            const toggleButton = document.getElementById('toggleEmailPhoneAuth');
+            const emailAuthSubmitText = document.getElementById('emailAuthSubmitText');
+
+            if (appState.isRegisterMode) {
+                phoneAuthFields.style.display = 'none';
+                emailAuthFields.style.display = 'block';
+                authSubtitle.textContent = 'Register with Email and Password';
+                toggleButton.textContent = 'Already have an account? Login';
+                emailAuthSubmitText.textContent = 'Register';
+            } else {
+                phoneAuthFields.style.display = 'block';
+                emailAuthFields.style.display = 'none';
+                authSubtitle.textContent = 'Enter your phone number or sign in with Email';
+                toggleButton.textContent = 'Use Email/Password';
+                emailAuthSubmitText.textContent = 'Login';
+            }
+        }
+
+        document.getElementById('toggleEmailPhoneAuth').addEventListener('click', function() {
+            appState.isRegisterMode = !appState.isRegisterMode;
+            updateAuthFormVisibility();
+        });
+
+
+        // Auth Functions
+        document.getElementById('authForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const phoneNumber = document.getElementById('phoneNumber');
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+
+            let userCredential = null;
+            let authSuccess = false;
+            let errorMessage = '';
+
+            // Determine which form is active and validate inputs
+            if (emailInput.style.display === 'block') { // Email/Password path
+                const email = emailInput.value.trim();
+                const password = passwordInput.value.trim();
+
+                if (!email || !password) {
+                    showNotification('Please enter both email and password.', 'error');
+                    return;
+                }
+                if (password.length < 6) {
+                    showNotification('Password should be at least 6 characters.', 'error');
+                    return;
+                }
+
+                document.getElementById('emailAuthSubmitText').classList.add('hidden');
+                document.getElementById('emailAuthLoader').classList.remove('hidden');
+
+                try {
+                    if (appState.isRegisterMode) {
+                        userCredential = await window.firebaseAuth.createUserWithEmailAndPassword(window.firebaseAuth, email, password);
+                        showNotification('✅ Registration successful!', 'success');
+                    } else {
+                        userCredential = await window.firebaseAuth.signInWithEmailAndPassword(window.firebaseAuth, email, password);
+                        showNotification('✅ Login successful!', 'success');
+                    }
+                    authSuccess = true;
+                } catch (error) {
+                    errorMessage = error.message;
+                    console.error("Email/Password Auth failed:", error);
+                    showNotification(`❌ Auth Failed: ${errorMessage}`, 'error');
+                } finally {
+                    document.getElementById('emailAuthSubmitText').classList.remove('hidden');
+                    document.getElementById('emailAuthLoader').classList.add('hidden');
+                }
+
+            } else { // Phone Number path (original logic)
+                const phone = phoneNumber.value.trim();
+                
+                if (!phone || phone.length < 10) {
+                    showNotification('Please enter a valid phone number', 'error');
+                    return;
+                }
+                
+                document.getElementById('authSubmitText').classList.add('hidden');
+                document.getElementById('authLoader').classList.remove('hidden');
+                
+                // Simulate phone number authentication (no actual Firebase phone auth implemented in frontend)
+                // In a real app, this would involve Firebase Phone Auth with reCAPTCHA verification etc.
+                await new Promise(resolve => setTimeout(resolve, 2000)); 
+                authSuccess = true; // Assume success for demo purposes
+                showNotification('✅ Phone authentication simulated successfully!', 'success');
+                
+                document.getElementById('authSubmitText').classList.remove('hidden');
+                document.getElementById('authLoader').classList.add('hidden');
+            }
+
+            if (authSuccess) {
+                const user = userCredential ? userCredential.user : { email: emailInput.value, phoneNumber: phoneNumber.value, displayName: 'User', uid: 'demo-uid-' + Date.now() }; // Mock user for phone auth
+                
+                if (appState.userType === 'customer') {
+                    appState.currentUser = { email: user.email, phone: user.phoneNumber, name: user.displayName || 'Customer', type: 'customer', uid: user.uid };
+                    showServices(); // Redirect to services screen after customer login
+                } else {
+                    appState.currentUser = { email: user.email, phone: user.phoneNumber, name: user.displayName || 'Maid Partner', type: 'maid', uid: user.uid }; // Sample maid name
+                    showMaidApp(); // Redirect to maid app after maid login
+                }
+            }
+        });
+
+        // Utility Functions
+        function showNotification(message, type = 'info') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type} show`;
+            
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 4000);
+        }
+
+        // Maid App Functions
+        function loadAvailableOrders() {
+            const ordersList = document.getElementById('availableOrdersList');
+            
+            if (!appState.maidAvailable) {
+                ordersList.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <div class="text-3xl mb-3">😴</div>
+                        <p class="font-medium">You're offline</p>
+                        <p class="text-sm">Go online to see available orders</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            if (availableOrders.length === 0) {
+                ordersList.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        <div class="text-3xl mb-3">✅</div>
+                        <p class="font-medium">No new orders at the moment</p>
+                        <p class="text-sm">Check back later!</p>
+                    </div>
+                `;
+                return;
+            }
+
+            ordersList.innerHTML = availableOrders.map(order => `
+                <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-200 hover:shadow-lg transition-all">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center space-x-3">
+                            <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                                <span class="text-xl">${services[order.service].icon}</span>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900">${services[order.service].name}</h3>
+                                <p class="text-sm text-gray-600">${order.customer} • ${order.distance}</p>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-xl font-bold text-green-600">₹${order.price}</div>
+                            <div class="text-xs text-gray-500">${order.estimatedDuration}</div>
+                        </div>
+                    </div>
+                    
+                    <p class="text-sm text-gray-600 mb-3">📍 ${order.address}</p>
+                    <p class="text-xs text-blue-600 mb-4">⏰ ${order.time}</p>
+                    
+                    <button onclick="acceptOrder('${order.id}')" class="w-full bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700 transition-all">
+                        ✅ Accept Order
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function acceptOrder(orderId) {
+            const orderIndex = availableOrders.findIndex(o => o.id === orderId);
+            if (orderIndex === -1) return;
+            
+            const order = availableOrders.splice(orderIndex, 1)[0]; // Remove from available
+            appState.currentJob = order;
+            
+            // Update current job section
+            document.getElementById('currentJobService').textContent = services[order.service].name;
+            document.getElementById('currentJobAddress').textContent = order.address;
+            document.getElementById('currentJobEarning').textContent = `Earning: ₹${order.price}`;
+            document.getElementById('customerName').textContent = order.customer;
+            
+            // Show current job section
+            document.getElementById('currentJobSection').style.display = 'block';
+            document.getElementById('availableOrdersSection').style.display = 'none';
+            
+            showNotification('🎉 Order accepted! Customer has been notified.', 'success');
+            
+            // Update stats
+            updateMaidStats();
+            loadAvailableOrders(); // Refresh available orders list
+        }
+
+        function startJob() {
+            if (!appState.currentJob) return;
+            
+            document.getElementById('currentJobStatus').textContent = 'In Progress';
+            document.getElementById('currentJobStatus').className = 'status-badge status-in-progress';
+            
+            document.getElementById('startJobBtn').style.display = 'none';
+            document.getElementById('completeJobBtn').style.display = 'block';
+            
+            showNotification('🚀 Job started! Good luck!', 'success');
+        }
+
+        function toggleAvailability() {
+            appState.maidAvailable = !appState.maidAvailable;
+            const btn = document.getElementById('availabilityBtn');
+            
+            if (appState.maidAvailable) {
+                btn.innerHTML = '🟢 Online';
+                btn.className = 'bg-green-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-green-600 transition-all';
+                showNotification('✅ You are now online and can receive orders', 'success');
+            } else {
+                btn.innerHTML = '🔴 Offline';
+                btn.className = 'bg-red-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-red-700 transition-all';
+                showNotification('⏸️ You are now offline', 'info');
+            }
+            
+            loadAvailableOrders();
+        }
+
+        function refreshOrders() {
+            showNotification('🔄 Refreshing orders...', 'info');
+            setTimeout(() => {
+                loadAvailableOrders();
+                showNotification('✅ Orders refreshed!', 'success');
+            }, 1000);
+        }
+
+        function loadTodaySummary() {
+            const completedJobsList = document.getElementById('completedJobsList');
+            
+            // This is sample data. In a real app, this would come from a backend.
+            const completedJobs = [
+                { service: 'Regular Cleaning', customer: 'Amit K.', earning: 499 },
+                { service: 'Toilet Cleaning', customer: 'Sneha P.', earning: 399 }
+            ];
+            
+            completedJobsList.innerHTML = completedJobs.map(job => `
+                <div class="flex justify-between text-sm">
+                    <span>${job.service}</span>
+                    <span class="text-green-600">₹${job.earning}</span>
+                </div>
+            `).join('');
+
+            // Calculate initial total earnings from sample jobs
+            const initialTotal = completedJobs.reduce((sum, job) => sum + job.earning, 0);
+            document.getElementById('baseEarnings').textContent = `₹${initialTotal}`;
+            document.getElementById('totalEarnings').textContent = `₹${initialTotal}`; // Assuming no tips for initial load
+        }
+
+        function addToCompletedJobs(job) {
+            const completedJobsList = document.getElementById('completedJobsList');
+            const newJob = document.createElement('div');
+            newJob.className = 'flex justify-between text-sm';
+            newJob.innerHTML = `
+                <span>${services[job.service].name}</span>
+                <span class="text-green-600">₹${job.price}</span>
+            `;
+            completedJobsList.insertBefore(newJob, completedJobsList.firstChild);
+
+            // Update total earnings after adding a job
+            const currentTotalEarnings = parseInt(document.getElementById('totalEarnings').textContent.replace('₹', ''));
+            document.getElementById('totalEarnings').textContent = `₹${currentTotalEarnings + job.price}`;
+            document.getElementById('baseEarnings').textContent = `₹${currentTotalEarnings + job.price}`;
+        }
+
+        function updateMaidStats() {
+            // This would typically update real stats on the maid profile, if implemented
+            console.log('Maid stats updated');
+        }
+
+        function callCustomer() {
+            showNotification('📞 Calling customer... (Demo)', 'info');
+        }
+
+        function showEarningsHistory() {
+            showNotification('💰 Earnings history feature coming soon!', 'info');
+        }
+
+        function showJobHistory() {
+            showNotification('📋 Job history feature coming soon!', 'info');
+        }
+
+        function showSupport() {
+            showNotification('🎧 Support chat feature coming soon!', 'info');
+        }
+
+        // Gemini API Integration Functions
+        async function callGeminiAPI(prompt, loaderId = null, textId = null) {
+            const loader = loaderId ? document.getElementById(loaderId) : null;
+            const textElement = textId ? document.getElementById(textId) : null;
+            
+            if (loader) loader.classList.remove('hidden');
+            if (textElement) textElement.classList.add('hidden');
+
+            let chatHistory = [{ role: "user", parts: [{ text: prompt }] }];
+            const payload = { contents: chatHistory };
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${window.API_KEY || ""}`; // Use window.API_KEY
+
+            try {
+                const response = await fetchWithExponentialBackoff(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await response.json();
+
+                if (result.candidates && result.candidates.length > 0 &&
+                    result.candidates[0].content && result.candidates[0].content.parts &&
+                    result.candidates[0].content.parts.length > 0) {
+                    return result.candidates[0].content.parts[0].text;
+                } else {
+                    console.error('Gemini API response structure unexpected:', result);
+                    return 'Could not generate content. Please try again.';
+                }
+            } catch (error) {
+                console.error('Error calling Gemini API:', error);
+                return 'Failed to connect to AI. Please check your network.';
+            } finally {
+                if (loader) loader.classList.add('hidden');
+                if (textElement) textElement.classList.remove('hidden');
+            }
+        }
+
+        // Chatbot specific functions
+        const chatDisplay = document.getElementById('chat-display');
+        const chatInput = document.getElementById('chat-input');
+
+        function appendMessage(sender, message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.classList.add('chat-message', sender);
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.classList.add('chat-bubble', sender);
+            bubbleDiv.textContent = message;
+            messageDiv.appendChild(bubbleDiv);
+            chatDisplay.appendChild(messageDiv);
+            chatDisplay.scrollTop = chatDisplay.scrollHeight; // Auto-scroll to bottom
+        }
+
+        async function handleChatbotQuery() {
+            const userQuery = chatInput.value.trim();
+            if (!userQuery) return;
+
+            appendMessage('user', userQuery);
+            chatInput.value = ''; // Clear input
+
+            // Show a typing indicator or temporary message
+            const typingIndicator = document.createElement('div');
+            typingIndicator.classList.add('chat-message', 'ai');
+            typingIndicator.innerHTML = '<div class="chat-bubble ai">...typing...</div>';
+            chatDisplay.appendChild(typingIndicator);
+            chatDisplay.scrollTop = chatDisplay.scrollHeight;
+
+            const prompt = `You are a helpful AI assistant for MaidMax, an on-demand maid service. Respond concisely and professionally to user queries about services, cleaning tips, booking, or general information. Keep responses under 100 words. User query: "${userQuery}"`;
+            const aiResponse = await callGeminiAPI(prompt);
+
+            chatDisplay.removeChild(typingIndicator); // Remove typing indicator
+            appendMessage('ai', aiResponse);
+        }
+
+        // Event listener for Enter key in chatbot input
+        chatInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault(); // Prevent new line
+                handleChatbotQuery();
+            }
+        });
+
+        // Initialize App: Show the landing screen on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('MaidMax MVP initialized with multi-page app functionality');
+            showLanding();
+
+            // Initial setup for existing index.html animations
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            };
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateY(0)';
+                    }
+                });
+            }, observerOptions);
+
+            document.querySelectorAll('.feature-card').forEach(card => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+                observer.observe(card);
+            });
+
+            // Smooth scrolling for navigation links (retained from index.html)
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    if (target) {
+                        target.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>
